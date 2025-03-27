@@ -1,0 +1,17 @@
+MANIFEST.in
+README.md
+setup.cfg
+setup.py
+colcon_riptide/colcon_riptide.egg-info/PKG-INFO
+colcon_riptide/colcon_riptide.egg-info/SOURCES.txt
+colcon_riptide/colcon_riptide.egg-info/dependency_links.txt
+colcon_riptide/colcon_riptide.egg-info/entry_points.txt
+colcon_riptide/colcon_riptide.egg-info/requires.txt
+colcon_riptide/colcon_riptide.egg-info/top_level.txt
+colcon_riptide/colcon_riptide.egg-info/zip-safe
+colcon_riptide/deploy_lists/test.txt
+colcon_riptide/package_augmentation/__init__.py
+colcon_riptide/package_augmentation/deploy_augmentation.py
+colcon_riptide/verb/__init__.py
+colcon_riptide/verb/deploy.py
+colcon_riptide/verb/timesync.py

@@ -1,0 +1,27 @@
+colcon-core>=0.5.2
+scantree
+
+[:platform_system == "Windows"]
+scandir
+
+[test]
+colcon-defaults
+colcon-package-information>=0.3.3
+colcon-package-selection>=0.2.10
+colcon-recursive-crawl
+colcon-test-result>=0.3.8
+fabric
+flake8-blind-except
+flake8-builtins
+flake8-class-newline
+flake8-comprehensions
+flake8-deprecated
+flake8-docstrings
+flake8-import-order
+flake8-quotes
+flake8>=3.6.0
+pep8-naming
+pylint
+pytest
+pytest-cov
+scspell3k>=2.2

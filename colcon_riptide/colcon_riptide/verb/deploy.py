@@ -1,6 +1,7 @@
 # Copyright 2016-2018 Dirk Thomas
 # Copyright 2021 Ruffin White
 # Copyright 2022 Cole Tucker
+# Copyright 2025 Alex Schuler
 # Licensed under the Apache License, Version 2.0
 from colcon_core.plugin_system import satisfies_version
 from colcon_core.verb import VerbExtensionPoint
@@ -10,6 +11,7 @@ from colcon_core.package_selection import add_arguments \
 from colcon_core.argument_parser.destination_collector import \
     DestinationCollectorDecorator
 from colcon_core.task import add_task_arguments
+from importlib.resources import files
 
 from subprocess import Popen, PIPE, call
 from datetime import datetime
@@ -65,6 +67,13 @@ class DeployVerb(VerbExtensionPoint):
             help='Creates a tar archive of the build on the target and saves it to the host'
         )
 
+        parser.add_argument(
+            '--deploy_list',
+            action='store_true',
+            help='Wether to deploy to a single host or a list of hosts define in the deploy lists folder'
+        )
+
+
         add_packages_arguments(parser)
 
         decorated_parser = DestinationCollectorDecorator(parser)
@@ -80,6 +89,7 @@ class DeployVerb(VerbExtensionPoint):
         WANT_CLEAN = context.args.clean
         NO_BUILD = context.args.no_build
         WANT_ARCHIVE = context.args.archive
+        DEPLOY_LISTS = context.args.deploy_list
 
         REM_SRC_DIR = os.path.join(REMOTE_DIR, "src")
 
@@ -90,106 +100,115 @@ class DeployVerb(VerbExtensionPoint):
             os.path.join(REMOTE_DIR, "log")
         ]
 
-        # test connection to target
-        ret_code = testNetwork(HOSTNAME)
-        if ret_code != 0:
-            print(f"Failed to ping {HOSTNAME}. Hostname unknown, or device offline")
-            exit(-1)
+        targets = [HOSTNAME]
+    
+        #read the deploy list and set the target
+        if(DEPLOY_LISTS == True):
+            list_text = files('colcon_riptide.deploy_lists').joinpath('test.txt').read_text()
+            targets = list_text.split("\n")
 
-        # make sure the remote directory exists
-        makeRemoteDir(REMOTE_DIR, USERNAME, HOSTNAME)
+        print(f"{len(targets)}")
 
-        # make sure we're not cleaning the entire directory
-        if WANT_CLEAN:
-            print("Cleaning remote directories")
-            for dir in REM_DIRS_FOR_CLEAN:
-                delRemoteDir(dir, USERNAME, HOSTNAME)
+        for target in targets:
 
-        # attempt an rsync for the current directory to the target dir
-        print("Synchronizing local packages to target")
-        decorators = get_packages(
-            context.args,
-            additional_argument_names=self.task_argument_destinations,
-            # recursive_categories=('run', )
-        )
+            # test connection to target
+            ret_code = testNetwork(target)
+            if ret_code != 0:
+                print(f"Failed to ping {HOSTNAME}. Hostname unknown, or device offline")
+                exit(-1)
 
-        # grab out the descriptors from each package as we are only building 
-        # on the target and not the host
-        packages_for_xfer = [package.descriptor for package in decorators if 
-            package.selected and package.descriptor.metadata["colcon_deploy_allow"]]
+            # make sure the remote directory exists
+            makeRemoteDir(REMOTE_DIR, USERNAME, target)
 
-        # make sure the remote source directory exists
-        makeRemoteDir(REM_SRC_DIR, USERNAME, HOSTNAME)
+            # make sure we're not cleaning the entire directory
+            if WANT_CLEAN:
+                print("Cleaning remote directories")
+                for dir in REM_DIRS_FOR_CLEAN:
+                    delRemoteDir(dir, USERNAME, target)
 
-        # show packages for xfer to the user
-        packages_to_build = []
-        print("Selected packages:")
-        if len(packages_for_xfer) == 0:
-            print("\tNo packages selected")
-            exit(-2)
-        else:
-            for descriptor in packages_for_xfer:
-                print(f"\t{descriptor.name}")
-                packages_to_build.append(descriptor.name)
-            print("\n\n")
+            # attempt an rsync for the current directory to the target dir
+            print("Synchronizing local packages to target")
+            decorators = get_packages(
+                context.args,
+                additional_argument_names=self.task_argument_destinations,
+                # recursive_categories=('run', )
+            )
 
-        
+            # grab out the descriptors from each package as we are only building 
+            # on the target and not the host
+            packages_for_xfer = [package.descriptor for package in decorators if 
+                package.selected and package.descriptor.metadata["colcon_deploy_allow"]]
 
-        # get exlpicitly the package paths
-        xfered = 0
-        try:
-            for descriptor in packages_for_xfer:
-                print(f"Synchronizing >>> {descriptor.name}")
-                xferDir(descriptor.path, USERNAME, HOSTNAME, REM_SRC_DIR)
-                xfered += 1
-        except Exception as e:
-            print(f"Error synchronizing {descriptor.name}")
-        
-        # check that all were transferred
-        if xfered != len(packages_for_xfer):
+            # make sure the remote source directory exists
+            makeRemoteDir(REM_SRC_DIR, USERNAME, target)
+
+            # show packages for xfer to the user
+            packages_to_build = []
+            print("Selected packages:")
+            if len(packages_for_xfer) == 0:
+                print("\tNo packages selected")
+                exit(-2)
+            else:
+                for descriptor in packages_for_xfer:
+                    print(f"\t{descriptor.name}")
+                    packages_to_build.append(descriptor.name)
+                print("\n\n")
+
+            # get exlpicitly the package paths
+            xfered = 0
+            try:
+                for descriptor in packages_for_xfer:
+                    print(f"Synchronizing >>> {descriptor.name}")
+                    xferDir(descriptor.path, USERNAME, target, REM_SRC_DIR)
+                    xfered += 1
+            except Exception as e:
+                print(f"Error synchronizing {descriptor.name}")
+            
+            # check that all were transferred
+            if xfered != len(packages_for_xfer):
+                print(f"Synchronized {xfered} of {len(packages_for_xfer)} packages")
+                print(f"Failed to synchronize {len(packages_for_xfer) - xfered} of {len(packages_for_xfer)} packages")
+                exit(-2)
+
             print(f"Synchronized {xfered} of {len(packages_for_xfer)} packages")
-            print(f"Failed to synchronize {len(packages_for_xfer) - xfered} of {len(packages_for_xfer)} packages")
-            exit(-2)
 
-        print(f"Synchronized {xfered} of {len(packages_for_xfer)} packages")
+            # if no build, we are done
+            if NO_BUILD:
+                exit(0)
 
-        # if no build, we are done
-        if NO_BUILD:
-            exit(0)
+            # Now lets do a remote build
+            print("\n\nExecuting remote build")
 
-        # Now lets do a remote build
-        print("\n\nExecuting remote build")
+            arch_name = ""
+            
+            # detect if it is a clean build as everything needs to re-build
+            if WANT_CLEAN:
+                arch_name = createAndSendBuildScript(USERNAME, target, REMOTE_DIR, 
+                    ["/opt/ros/humble/setup.bash"], [], WANT_ARCHIVE)
 
-        arch_name = ""
-        
-        # detect if it is a clean build as everything needs to re-build
-        if WANT_CLEAN:
-            arch_name = createAndSendBuildScript(USERNAME, HOSTNAME, REMOTE_DIR, 
-                ["/opt/ros/humble/setup.bash"], [], WANT_ARCHIVE)
+            else:
+                arch_name = createAndSendBuildScript(USERNAME, target, REMOTE_DIR, 
+                    ["/opt/ros/humble/setup.bash"], packages_to_build, WANT_ARCHIVE)
 
-        else:
-            arch_name = createAndSendBuildScript(USERNAME, HOSTNAME, REMOTE_DIR, 
-                ["/opt/ros/humble/setup.bash"], packages_to_build, WANT_ARCHIVE)
+            # run the actual build
+            build_status = remoteExec("/bin/bash /tmp/deploy_build.bash", USERNAME, target, True)
 
-        # run the actual build
-        build_status = remoteExec("/bin/bash /tmp/deploy_build.bash", USERNAME, HOSTNAME, True)
+            # make sure build is good
+            if build_status != 0:
+                # dont need a error message as colcon prints from the remote
+                exit(-3)
 
-        # make sure build is good
-        if build_status != 0:
-            # dont need a error message as colcon prints from the remote
-            exit(-3)
+            if WANT_ARCHIVE:
+                print(f"Downloading archive {arch_name}")
 
-        if WANT_ARCHIVE:
-            print(f"Downloading archive {arch_name}")
+                # copy the file to the CWD
+                work_dir = os.getcwd()
 
-            # copy the file to the CWD
-            work_dir = os.getcwd()
+                downloadDir(arch_name, USERNAME, target, work_dir)
 
-            downloadDir(arch_name, USERNAME, HOSTNAME, work_dir)
+                local_path = os.path.join(work_dir, arch_name[arch_name.index('/') + 1 : ])
 
-            local_path = os.path.join(work_dir, arch_name[arch_name.index('/') + 1 : ])
-
-            print(f"Archive downloaded to {local_path}")
+                print(f"Archive downloaded to {local_path}")
     
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)

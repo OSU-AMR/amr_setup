@@ -33,7 +33,7 @@ class DeployVerb(VerbExtensionPoint):
         # support a configurable username
         parser.add_argument(
             '--username',
-            default='ros',
+            default='dev',
             help='The username to use on login '
                  '(default: ros)'
         )
@@ -104,10 +104,17 @@ class DeployVerb(VerbExtensionPoint):
     
         #read the deploy list and set the target
         if(DEPLOY_LISTS == True):
-            list_text = files('colcon_riptide.deploy_lists').joinpath('test.txt').read_text()
-            targets = list_text.split("\n")
+            try:
+                list_text = files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt').read_text()
+                targets = list_text.split("\n")
+            except FileNotFoundError:
+                print(f"No file found for deploy lists at {files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt')}")
+                return
 
         print(f"{len(targets)}")
+
+        #error code state for deploy log
+        results = dict()
 
         for target in targets:
 
@@ -115,7 +122,11 @@ class DeployVerb(VerbExtensionPoint):
             ret_code = testNetwork(target)
             if ret_code != 0:
                 print(f"Failed to ping {HOSTNAME}. Hostname unknown, or device offline")
-                exit(-1)
+
+                #add failure state to result log
+                results[target] = "Failure Could Not Find Host"
+
+                continue
 
             # make sure the remote directory exists
             makeRemoteDir(REMOTE_DIR, USERNAME, target)
@@ -147,7 +158,10 @@ class DeployVerb(VerbExtensionPoint):
             print("Selected packages:")
             if len(packages_for_xfer) == 0:
                 print("\tNo packages selected")
-                exit(-2)
+
+                #add failure state to result log
+                results[target] = "Failure with no Selected Packages"
+                continue
             else:
                 for descriptor in packages_for_xfer:
                     print(f"\t{descriptor.name}")
@@ -160,6 +174,7 @@ class DeployVerb(VerbExtensionPoint):
                 for descriptor in packages_for_xfer:
                     print(f"Synchronizing >>> {descriptor.name}")
                     xferDir(descriptor.path, USERNAME, target, REM_SRC_DIR)
+
                     xfered += 1
             except Exception as e:
                 print(f"Error synchronizing {descriptor.name}")
@@ -168,13 +183,18 @@ class DeployVerb(VerbExtensionPoint):
             if xfered != len(packages_for_xfer):
                 print(f"Synchronized {xfered} of {len(packages_for_xfer)} packages")
                 print(f"Failed to synchronize {len(packages_for_xfer) - xfered} of {len(packages_for_xfer)} packages")
-                exit(-2)
+
+                #add failure state to result log
+                results[target] = "Faiulure Synchronizing Packages"
+                continue
 
             print(f"Synchronized {xfered} of {len(packages_for_xfer)} packages")
 
             # if no build, we are done
             if NO_BUILD:
-                exit(0)
+                #add failure state to result log
+                results[target] = "Success without Build"
+                continue
 
             # Now lets do a remote build
             print("\n\nExecuting remote build")
@@ -196,7 +216,9 @@ class DeployVerb(VerbExtensionPoint):
             # make sure build is good
             if build_status != 0:
                 # dont need a error message as colcon prints from the remote
-                exit(-3)
+                #add failure state to result log
+                results[target] = "Failed with Build Failure"
+                continue
 
             if WANT_ARCHIVE:
                 print(f"Downloading archive {arch_name}")
@@ -209,6 +231,17 @@ class DeployVerb(VerbExtensionPoint):
                 local_path = os.path.join(work_dir, arch_name[arch_name.index('/') + 1 : ])
 
                 print(f"Archive downloaded to {local_path}")
+
+            #add failure state to result log
+            results[target] = "Success with Build"
+
+        #print out the log of the results
+        print(f"\n\n*******************************************************************")
+        print(f"Deploy action finished on {len(results)} target: ")
+        for target in results.keys():
+            print(f"    {target} ->>> {results[target]}")
+        print(f"*******************************************************************\n\n")
+
     
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)

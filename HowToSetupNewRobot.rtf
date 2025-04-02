@@ -1,0 +1,67 @@
+How to setup a new Robot 
+
+1. Install Ubuntu 22.04
+    a. Create a user
+        username: dev
+        password: panda
+
+
+2. Manual Configuration
+    a. Give it wireless wifi access
+        Can be as easy as connection to WIFI@OSU
+
+    b. Bring things up to date
+        sudo apt update
+        sudo apt upgrade
+
+    c. Install networking tools onto the panda
+        sudo apt install net-tools
+        sudo apt install ifmetric
+
+    d. Configure the panda to prefer the wireless network over the ethernet
+        sudo nmcli connection modify 'Wired connection 1' ipv4.route-metric 5000
+            you may need to replace the name Wired connection 1; (nmclid device) gets names
+        sudo nmcli connection up
+        Verify by running "route -n" (lower metric == more preferred)
+    
+    e. Ensure there is a running ssh server on the panda
+        sudo apt install openssh-server
+        sudo systemctl enabled sshd
+
+    f. Get the panda MAC Address (Write this down for later)
+        ip addr show
+        Write Down the ethernet and wireless addresses (look something like ##:##:##:##:##:##)
+            ethernet is under en****
+            wireless is under wl****
+
+
+3. AMR Net Configuration
+    a. Wire peer to peer connection to dev laptop
+        Plug both dev laptop and panda into router (not the yellow port)
+
+    b. Ensure the reserves the panda's id
+        On the dev laptop go to the rotuer's ip in a web browser (typically 192.168.1.1) - you need to click on the screen to get to the settings page
+        Log into the router (Router password = admin)
+        Go to Connectivity->Local Network->DHCP Reservations
+        Manually add device reservation
+            DeviceName: Robot#Wired
+            Assign IP Address: 192.168.1.20#
+            To: MAC Address: {MAC Address you wrote down earlier: ethernet}
+        Save
+        Manually add device reservation
+            DeviceName: Robot#Wireless
+            Assign IP Address: 192.168.1.22#
+            To: MAC Address: {MAC Address you wrote down earlier: wireless}
+        Save
+
+    c. Set Static DCHP on panda
+        Settings->Network->Wired Setting Icon->IPV4->Manual
+            Address: 192.168.1.20#
+            Netmask: 255.255.255.0
+        Apply
+
+    c. Reboot panda 
+        Verify the panda now has the correct ip (ip addr)
+
+
+4. Install Many Many Things onto the device

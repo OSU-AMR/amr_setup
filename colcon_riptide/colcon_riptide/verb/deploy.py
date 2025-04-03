@@ -111,7 +111,6 @@ class DeployVerb(VerbExtensionPoint):
                 print(f"No file found for deploy lists at {files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt')}")
                 return
 
-        print(f"{len(targets)}")
 
         #error code state for deploy log
         results = dict()

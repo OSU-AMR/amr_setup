@@ -38,10 +38,23 @@ class SetupAMRVerb(VerbExtensionPoint):
                  '(default: ros)'
         )
 
+        parser.add_argument(
+            '--update_bashrc_only',
+            action='store_true',
+            help='The username to use on login '
+                 '(default: ros)'
+        )
+
+        parser.add_argument(
+            '--deploy_list',
+            action='store_true',
+            help='Wether to deploy to a single host or a list of hosts define in the deploy lists folder'
+        )
+
         add_packages_arguments(parser)
 
         decorated_parser = DestinationCollectorDecorator(parser)
-        add_task_arguments(decorated_parser, 'colcon_core.task.deploy')
+        add_task_arguments(decorated_parser, 'colcon_core.task.setupAMR')
         self.task_argument_destinations = decorated_parser.get_destinations()
   
 
@@ -49,32 +62,59 @@ class SetupAMRVerb(VerbExtensionPoint):
 
         USERNAME = context.args.username
         HOSTNAME = context.args.hostname
+        DEPLOY_LISTS = context.args.deploy_list
+        UPDATE_BASHRC_ONLY = context.args.update_bashrc_only
 
-        #copy ssh key
-        execute(["ssh-copy-id", f"{USERNAME}@{HOSTNAME}"], True)
+        sample_bashrc_path = files('colcon_riptide').joinpath("AMR_bashrc")
 
-        if(execute(["ssh", f"{USERNAME}@{HOSTNAME}", "mkdir", "AMR"], True) == 1):
-            wait_for_res = True
-            while(wait_for_res):
-                user_response = input("This host appears to be setup. Would you like to wipe it and continue? (Y/n)")
+        targets = [HOSTNAME]
+    
+        #read the deploy list and set the target
+        if(DEPLOY_LISTS == True):
+            try:
+                list_text = files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt').read_text()
+                targets = list_text.split("\n")
+            except FileNotFoundError:
+                print(f"No file found for deploy lists at {files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt')}")
+                return
 
-                if(user_response == "Y") or  (user_response == "y"):
-                    wait_for_res = False
+        for target in targets:
 
-                if(user_response == "N") or  (user_response == "n"):
-                    return
+            #only update the bashrc file then quit
+            if(UPDATE_BASHRC_ONLY):
+                execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
+
+                return
             
-            #delete and remake the AMR directory
-            execute(["ssh", f"{USERNAME}@{HOSTNAME}", "rm", "-rf", "AMR"], True)
-            execute(["ssh", f"{USERNAME}@{HOSTNAME}", "mkdir", "AMR"], True)
+            #copy ssh key
+            execute(["ssh-copy-id", f"{USERNAME}@{target}"], True)
 
-        execute(['ssh', f"{USERNAME}@{HOSTNAME}", "sudo", "apt", "install", "-y", 'git'], True)
+            if(execute(["ssh", f"{USERNAME}@{target}", "mkdir", "AMR"], True) == 1):
+                wait_for_res = True
+                while(wait_for_res):
+                    user_response = input("This host appears to be setup. Would you like to wipe it and continue? (Y/n)")
 
-        execute(["ssh", f"{USERNAME}@{HOSTNAME}", "(cd", "AMR", "&&", "git", "clone", "https://github.com/OSU-AMR/amr_setup.git)"], True)
+                    if(user_response == "Y") or  (user_response == "y"):
+                        wait_for_res = False
 
-                    
+                    if(user_response == "N") or  (user_response == "n"):
+                        return
+                
+                #delete and remake the AMR directory
+                execute(["ssh", f"{USERNAME}@{target}", "rm", "-rf", "AMR"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "mkdir", "AMR"], True)
 
+            #install git
+            execute(['ssh', f"{USERNAME}@{target}", "sudo", "apt", "install", "-y", 'git'], True)
 
+            #copy over the AMR bashrc
+            execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
+
+            #clone amr setup repo
+            execute(["ssh", f"{USERNAME}@{target}", "(cd", "AMR", "&&", "git", "clone", "https://github.com/OSU-AMR/amr_setup.git)"], True)
+
+            #install the setup script from the github
+            execute(["ssh", f"{USERNAME}@{target}", "sudo", "AMR/amr_setup/setup.bash"], True)
     
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)

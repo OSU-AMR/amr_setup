@@ -26,13 +26,17 @@ How to setup a new Robot
     
     e. Ensure there is a running ssh server on the panda
         sudo apt install openssh-server
-        sudo systemctl enabled sshd
+        sudo service ssh restart
 
     f. Get the panda MAC Address (Write this down for later)
         ip addr show
         Write Down the ethernet and wireless addresses (look something like ##:##:##:##:##:##)
             ethernet is under en****
             wireless is under wl****
+
+    g. Setup passwordless sudo
+        sudo visudo
+        add "dev ALL=(ALL) NOPASSWD: ALL" to the end and save
 
 
 3. AMR Net Configuration
@@ -60,8 +64,13 @@ How to setup a new Robot
             Netmask: 255.255.255.0
         Apply
 
-    c. Reboot panda 
+    d. Reboot panda 
         Verify the panda now has the correct ip (ip addr)
+
+    e. Add Hostname on Dev Computer
+        edit /etc/hosts
+        add "192.168.1.20#  Robot#Wired" to the file and save
+        add "192.168.1.22#  Robot#Wireless" to the file and save
 
 
 4. Install Many Many Things onto the device

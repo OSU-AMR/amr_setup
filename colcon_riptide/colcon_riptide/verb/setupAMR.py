@@ -48,23 +48,33 @@ class SetupAMRVerb(VerbExtensionPoint):
     def main(self, *, context):  # noqa: D102
 
         USERNAME = context.args.username
-        REMOTE_DIR = context.args.remote_dir
         HOSTNAME = context.args.hostname
-        WANT_CLEAN = context.args.clean
-        NO_BUILD = context.args.no_build
-        WANT_ARCHIVE = context.args.archive
-        DEPLOY_LISTS = context.args.deploy_list
 
-        REM_SRC_DIR = os.path.join(REMOTE_DIR, "src")
+        #copy ssh key
+        execute(["ssh-copy-id", f"{USERNAME}@{HOSTNAME}"], True)
 
-        # the remote directories to clean when cleaning
-        REM_DIRS_FOR_CLEAN = [
-            os.path.join(REMOTE_DIR, "install"),
-            os.path.join(REMOTE_DIR, "build"),
-            os.path.join(REMOTE_DIR, "log")
-        ]
+        if(execute(["ssh", f"{USERNAME}@{HOSTNAME}", "mkdir", "AMR"], True) == 1):
+            wait_for_res = True
+            while(wait_for_res):
+                user_response = input("This host appears to be setup. Would you like to wipe it and continue? (Y/n)")
 
-        print("Hello")
+                if(user_response == "Y") or  (user_response == "y"):
+                    wait_for_res = False
+
+                if(user_response == "N") or  (user_response == "n"):
+                    return
+            
+            #delete and remake the AMR directory
+            execute(["ssh", f"{USERNAME}@{HOSTNAME}", "rm", "-rf", "AMR"], True)
+            execute(["ssh", f"{USERNAME}@{HOSTNAME}", "mkdir", "AMR"], True)
+
+        execute(['ssh', f"{USERNAME}@{HOSTNAME}", "sudo", "apt", "install", "-y", 'git'], True)
+
+        execute(["ssh", f"{USERNAME}@{HOSTNAME}", "(cd", "AMR", "&&", "git", "clone", "https://github.com/OSU-AMR/amr_setup.git)"], True)
+
+                    
+
+
     
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)

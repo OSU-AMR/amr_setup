@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#moo
+
 # Default Linux installation doesn't have pip. Install and update for both Python versions for good measure
 sudo apt-get install python3-pip --yes
 python3 -m pip install --upgrade pip
@@ -32,3 +34,6 @@ fi
 
 cd ~/osu-uwrt/riptide_setup
 ~/osu-uwrt/riptide_setup/setup_scripts/update_system.bash
+
+
+

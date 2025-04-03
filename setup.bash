@@ -25,6 +25,6 @@ sudo apt install -y ros-humble-desktop
 sudo apt install -y ros-dev-tools
 
 #install colcon
-$ sudo apt install -y python3-colcon-common-extensions
+sudo apt install -y python3-colcon-common-extensions
 
 

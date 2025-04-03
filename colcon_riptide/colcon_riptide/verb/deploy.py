@@ -68,7 +68,7 @@ class DeployVerb(VerbExtensionPoint):
         )
 
         parser.add_argument(
-            '--deploy_list',
+            '--deploy-list',
             action='store_true',
             help='Wether to deploy to a single host or a list of hosts define in the deploy lists folder'
         )

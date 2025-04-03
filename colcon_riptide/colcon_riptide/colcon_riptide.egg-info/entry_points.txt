@@ -5,4 +5,5 @@ deploy_augmentation = colcon_riptide.package_augmentation.deploy_augmentation:De
 deploy = colcon_riptide.verb.deploy:DeployVerb
 timesync = colcon_riptide.verb.timesync:TimesyncVerb
 setupAMR = colcon_riptide.verb.setupAMR:SetupAMRVerb
+command = colcon_riptide.verb.command:Command
 

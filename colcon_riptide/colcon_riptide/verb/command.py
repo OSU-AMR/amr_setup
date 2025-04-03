@@ -18,7 +18,7 @@ from datetime import datetime
 from fabric import Connection
 import os, stat
 
-class SetupAMRVerb(VerbExtensionPoint):
+class Command(VerbExtensionPoint):
     """deploys package workspaces."""
 
     def __init__(self):  # noqa: D107
@@ -30,17 +30,14 @@ class SetupAMRVerb(VerbExtensionPoint):
         # enforce hostname
         parser.add_argument('hostname')
 
+        parser.add_argument('command',
+            help="Command to be run on multiple devices"
+        )
+
         # support a configurable username
         parser.add_argument(
             '--username',
             default='dev',
-            help='The username to use on login '
-                 '(default: ros)'
-        )
-
-        parser.add_argument(
-            '--update_bashrc_only',
-            action='store_true',
             help='The username to use on login '
                  '(default: ros)'
         )
@@ -51,20 +48,36 @@ class SetupAMRVerb(VerbExtensionPoint):
             help='Wether to deploy to a single host or a list of hosts define in the deploy lists folder'
         )
 
+        parser.add_argument(
+            '--verbose',
+            action='store_true',
+            help='Wether or not to print command out put to console'
+        )
+
+        parser.add_argument(
+            '--very-verbose',
+            action='store_true',
+            help='Wether or not to print command'
+        )
+
         add_packages_arguments(parser)
 
         decorated_parser = DestinationCollectorDecorator(parser)
-        add_task_arguments(decorated_parser, 'colcon_core.task.setupAMR')
+        add_task_arguments(decorated_parser, 'colcon_core.task.command')
         self.task_argument_destinations = decorated_parser.get_destinations()
-  
+
     def main(self, *, context):  # noqa: D102
 
         USERNAME = context.args.username
         HOSTNAME = context.args.hostname
+        COMMAND = context.args.command
         DEPLOY_LISTS = context.args.deploy_list
-        UPDATE_BASHRC_ONLY = context.args.update_bashrc_only
+        VERBOSE = context.args.verbose
+        VERY_VERBOSE = context.args.very_verbose
 
-        sample_bashrc_path = files('colcon_riptide').joinpath("AMR_bashrc")
+        #make sure verbose if true if very verbose is true
+        if(VERY_VERBOSE):
+            VERBOSE = True
 
         targets = [HOSTNAME]
     
@@ -77,63 +90,50 @@ class SetupAMRVerb(VerbExtensionPoint):
                 print(f"No file found for deploy lists at {files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt')}")
                 return
 
+        #error code state for deploy log
+        results = dict()
+
         for target in targets:
 
-            #only update the bashrc file then quit
-            if(UPDATE_BASHRC_ONLY):
-                execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
+            # test connection to target
+            ret_code = testNetwork(target)
+            if ret_code != 0:
+                print(f"Failed to ping {HOSTNAME}. Hostname unknown, or device offline")
 
-                return
-            
-            #copy ssh key
-            execute(["ssh-copy-id", f"{USERNAME}@{target}"], True)
+                #add failure state to result log
+                results[target] = "Failure Could Not Find Host"
 
-            if(execute(["ssh", f"{USERNAME}@{target}", "mkdir", "AMR"], True) == 1):
-                wait_for_res = True
-                while(wait_for_res):
-                    user_response = input("This host appears to be setup. Would you like to wipe it and continue? (Y/n)")
+                continue
 
-                    if(user_response == "Y") or  (user_response == "y"):
-                        wait_for_res = False
-
-                    if(user_response == "N") or  (user_response == "n"):
-                        return
-                
-                #delete and remake the AMR directory
-                execute(["ssh", f"{USERNAME}@{target}", "rm", "-rf", "AMR"], True)
-                execute(["ssh", f"{USERNAME}@{target}", "mkdir", "AMR"], True)
-
-            #install git
-            execute(['ssh', f"{USERNAME}@{target}", "sudo", "apt", "install", "-y", 'git'], True)
-
-            #copy over the AMR bashrc
-            execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
-
-            #clone amr setup repo
-            execute(["ssh", f"{USERNAME}@{target}", "(cd", "AMR", "&&", "git", "clone", "https://github.com/OSU-AMR/amr_setup.git)"], True)
 
             #install the setup script from the github
-            execute(["ssh", f"{USERNAME}@{target}", "sudo", "AMR/amr_setup/setup.bash"], True)
+            if(execute(["ssh", f"{USERNAME}@{target}", COMMAND], VERBOSE, VERY_VERBOSE)):
+                results[target] = "Failed with Ret Code 1 - Please see output above"
+
+            else:
+                results[target] = "Command Successfully Sent"
+
+        #print out the log of the results
+        print(f"\n\n*******************************************************************")
+        print(f"Deploy action finished on {len(results)} target: ")
+        for target in results.keys():
+            print(f"    {target} ->>> {results[target]}")
+        print(f"*******************************************************************\n\n")
+
     
-def execute(fullCmd, printOut=False):
+def execute(fullCmd, print_output, printOut):
     if printOut: print(fullCmd)
     proc = Popen(fullCmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     if printOut:
         for line in iter(proc.stdout.readline, ""):
-            print(line)
+            if(print_output):
+                print(line)
         for errLine in iter(proc.stderr.readline, ""):
             print(f"ERROR: {errLine}")
     proc.stdout.close()
     retCode = proc.wait()
     return retCode
 
-def xferDir(localdir, username, address, destination):
-    execute(["rsync", "-vrzc", "--delete", "--exclude=**/.git/",
-             "--exclude=**/.vscode/", localdir, 
-             f"{username}@{address}:{destination}"], False)
-
-def downloadDir(remotedir, username, address, destination):
-    execute(["rsync", "-vrzc", "--delete", "--exclude=**/.git/",
-             "--exclude=**/.vscode/", 
-             f"{username}@{address}:{remotedir}", destination], False)
+def testNetwork(pingAddress):
+    return call(["ping", "-c", "1", pingAddress], stdout=open(os.devnull, 'wb'))
 

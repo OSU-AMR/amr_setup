@@ -18,7 +18,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-a
 
 #update
 sudo apt update
-sudo apt upgrade
+sudo apt -y upgrade
 
 #install ros2
 sudo apt install -y ros-humble-desktop

@@ -24,6 +24,15 @@ sudo apt -y upgrade
 sudo apt install -y ros-humble-desktop
 sudo apt install -y ros-dev-tools
 
+#install apriltag detector
+pip install dt-apriltags
+
+#install tf
+sudo apt install -y ros-humble-tf-transformations
+
+#install ffmpeg
+sudo apt install ffmpeg
+
 #install colcon
 sudo apt install -y python3-colcon-common-extensions
 

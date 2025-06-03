@@ -11,3 +11,4 @@
 rm -rf /usr/lib/python3/dist-packages/colcon_riptide
 
 cp -r /home/hollis/AMR/amr_setup/colcon_riptide/colcon_riptide /usr/lib/python3/dist-packages/
+

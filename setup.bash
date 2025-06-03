@@ -30,6 +30,9 @@ pip install dt-apriltags
 #install tf
 sudo apt install -y ros-humble-tf-transformations
 
+#install vision msgs
+sudo apt install -r ros-humble-vision-msgs
+
 #install ffmpeg
 sudo apt install ffmpeg
 

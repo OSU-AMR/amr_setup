@@ -234,6 +234,24 @@ class DeployVerb(VerbExtensionPoint):
             #add failure state to result log
             results[target] = "Success with Build"
 
+            #attempt to run the blueprint translator command
+            translate_status = remoteExec("translate_blueprint", USERNAME, target, True)
+
+            if(translate_status != 0):
+                results[target] += "& and translate failure"
+                continue
+            
+            results[target] += " & and translate success"
+
+            #attempt to run the launch configurator file
+            configure_status = remoteExec("configure_for_launcher", USERNAME, target, True)
+
+            if(configure_status != 0):
+                results[target] += "& and launch configuration failure"
+                continue
+            
+            results[target] += " & and launch configuration success"
+
         #print out the log of the results
         print(f"\n\n*******************************************************************")
         print(f"Deploy action finished on {len(results)} target: ")

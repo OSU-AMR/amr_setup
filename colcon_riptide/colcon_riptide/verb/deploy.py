@@ -73,6 +73,17 @@ class DeployVerb(VerbExtensionPoint):
             help='Wether to deploy to a single host or a list of hosts define in the deploy lists folder'
         )
 
+        parser.add_argument(
+            '--verbose',
+            action='store_true',
+            help='Wether or not to print command out put to console'
+        )
+
+        parser.add_argument(
+            '--very-verbose',
+            action='store_true',
+            help='Wether or not to print command'
+        )
 
         add_packages_arguments(parser)
 
@@ -90,6 +101,8 @@ class DeployVerb(VerbExtensionPoint):
         NO_BUILD = context.args.no_build
         WANT_ARCHIVE = context.args.archive
         DEPLOY_LISTS = context.args.deploy_list
+        VERBOSE = context.args.verbose
+        VERY_VERBOSE = context.args.very_verbose
 
         REM_SRC_DIR = os.path.join(REMOTE_DIR, "src")
 
@@ -235,19 +248,19 @@ class DeployVerb(VerbExtensionPoint):
             results[target] = "Success with Build"
 
             #attempt to run the blueprint translator command
-            translate_status = remoteExec("translate_blueprint", USERNAME, target, True)
+            translate_status = glorious_remote_execute(USERNAME, target, "ros2 run amr_central translate_blueprint.py --ros-args -p blueprint_filename:=map_a.yaml -p command_list_filename:=command_list.yaml -p ignore_gui:=True", VERBOSE, VERY_VERBOSE)
 
             if(translate_status != 0):
-                results[target] += "& and translate failure"
+                results[target] += " & and translate failure"
                 continue
             
             results[target] += " & and translate success"
 
             #attempt to run the launch configurator file
-            configure_status = remoteExec("configure_for_launcher", USERNAME, target, True)
+            configure_status = glorious_remote_execute(USERNAME, target, 'ros2 run amr_launcher configure_for_launch.py',  VERBOSE, VERY_VERBOSE)
 
             if(configure_status != 0):
-                results[target] += "& and launch configuration failure"
+                results[target] += " & and launch configuration failure"
                 continue
             
             results[target] += " & and launch configuration success"
@@ -259,13 +272,16 @@ class DeployVerb(VerbExtensionPoint):
             print(f"    {target} ->>> {results[target]}")
         print(f"*******************************************************************\n\n")
 
-    
-def execute(fullCmd, printOut=False):
+
+        print("You should reboot the AMRs now :)")
+
+def execute(fullCmd, print_output=False, printOut=False):
     if printOut: print(fullCmd)
     proc = Popen(fullCmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     if printOut:
         for line in iter(proc.stdout.readline, ""):
-            print(line)
+            if(print_output):
+                print(line)
         for errLine in iter(proc.stderr.readline, ""):
             print(f"ERROR: {errLine}")
     proc.stdout.close()
@@ -291,7 +307,7 @@ def remoteExec(cmd, username, address, printOut=False, passwd=""):
     try:
         result = connect.run(cmd, hide=(not printOut)).exited
     except Exception as e:
-        pass
+        return -1
     return result
 
 def makeRemoteDir(remoteDir, username, address):
@@ -369,3 +385,6 @@ def createAndSendBuildScript(username, hostname, remote_dir, source_files, packa
     # transfer the script
     xferDir(local_script_path, username, hostname, local_script_path)
     return arch_name
+
+def glorious_remote_execute(uwer_name, target, command, is_verbose, is_very_verbose):
+    return execute(["ssh", f"{uwer_name}@{target}", "source /opt/ros/humble/setup.bash; source ~/colcon_deploy/install/setup.bash; " + command], is_verbose, is_very_verbose)

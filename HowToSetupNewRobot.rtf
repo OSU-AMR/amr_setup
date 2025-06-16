@@ -13,6 +13,7 @@ How to setup a new Robot
 2. Manual Configuration
     a. Give it wireless wifi access
         Can be as easy as connection to WIFI@OSU
+        Do not plug into amr net
 
     b. Bring things up to date
         sudo apt update
@@ -23,9 +24,10 @@ How to setup a new Robot
         sudo apt install ifmetric
 
     d. Configure the panda to prefer the wireless network over the ethernet
+        plug into amr net
         sudo nmcli connection modify 'Wired connection 1' ipv4.route-metric 5000
-            you may need to replace the name Wired connection 1; (nmclid device) gets names
-        sudo nmcli connection up
+            you may need to replace the name Wired connection 1; (nmcli device) gets names
+        sudo nmcli connection up 'Wired connection 1'
         Verify by running "route -n" (lower metric == more preferred)
     
     e. Ensure there is a running ssh server on the panda
@@ -78,3 +80,4 @@ How to setup a new Robot
 
 
 4. Install Many Many Things onto the device
+    run "colcon setupAMR HOSTNAME" to do this (it'll also copy over the bashrc)

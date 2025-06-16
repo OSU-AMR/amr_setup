@@ -36,7 +36,7 @@ esac
 # uncomment for a colored prompt, if the terminal has the capability; turned
 # off by default to not distract the user: the focus in a terminal window
 # should be on the output of commands, not on the prompt
-#force_color_prompt=yes
+force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
@@ -92,6 +92,9 @@ alias translate_blueprint="ros2 run amr_central translate_blueprint.py --ros-arg
 #add an alias to the launch configure command
 alias configure_for_launcher="ros2 run amr_launcher configure_for_launch.py"
 
+#add an alias to launch the zenoh router
+alias zenoh_launch="ros2 run rmw_zenoh_cpp rmw_zenohd"
+
 # Alias definitions.
 # You may want to put all your additions into a separate file like
 # ~/.bash_aliases, instead of adding them here directly.
@@ -111,3 +114,6 @@ fi
 #ROS2 sources
 source /opt/ros/humble/setup.bash
 source ~/colcon_deploy/install/setup.bash
+
+#zenoh not fast zenoh
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp

@@ -114,6 +114,7 @@ class SetupAMRVerb(VerbExtensionPoint):
 
             #install the setup script from the github
             execute(["ssh", f"{USERNAME}@{target}", "sudo", "AMR/amr_setup/setup.bash"], True)
+
     
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)

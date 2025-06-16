@@ -39,4 +39,9 @@ sudo apt install ffmpeg
 #install colcon
 sudo apt install -y python3-colcon-common-extensions
 
+#install zenoh
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+sudo apt update
+sudo apt install -y ros-humble-rmw-zenoh-cpp 
+
 

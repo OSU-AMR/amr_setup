@@ -1,0 +1,20 @@
+#!/bin/bash
+
+while true; do
+    state=$(cat /sys/class/net/can0/operstate 2>/dev/null)
+
+    case "$state" in
+        up)
+            #can is up
+            ;;
+        down)
+            #attempt to bring can up
+            sudo ip link set can0 up qlen 1000 type can bitrate 1000000
+            ;;
+        *)
+            #can is doing something odd
+            ;;
+    esac
+
+    sleep 1
+done

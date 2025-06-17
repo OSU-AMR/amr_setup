@@ -44,4 +44,7 @@ sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o
 sudo apt update
 sudo apt install -y ros-humble-rmw-zenoh-cpp 
 
+#install htop
+sudo apt install htop
+
 

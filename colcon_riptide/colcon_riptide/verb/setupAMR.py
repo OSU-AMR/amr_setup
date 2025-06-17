@@ -65,6 +65,8 @@ class SetupAMRVerb(VerbExtensionPoint):
         UPDATE_BASHRC_ONLY = context.args.update_bashrc_only
 
         sample_bashrc_path = files('colcon_riptide').joinpath("AMR_bashrc")
+        sample_rc_local_path = files('colcon_riptide').joinpath("AMR_rc_local")
+        can_bringup_script_path = files('colcon_riptide').joinpath("AMR_CAN_bringup")
 
         targets = [HOSTNAME]
     
@@ -82,6 +84,19 @@ class SetupAMRVerb(VerbExtensionPoint):
             #only update the bashrc file then quit
             if(UPDATE_BASHRC_ONLY):
                 execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
+
+                #copy over the AMR rc local
+                execute(["scp", sample_rc_local_path, f"{USERNAME}@{target}:tempfile"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/etc/rc.local"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/etc/rc.local"], True)
+
+                
+
+                #copy over the can bringup command
+                execute(["scp", can_bringup_script_path, f"{USERNAME}@{target}:tempfile"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/bin/can_up.sh"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/bin/can_up.sh"], True)
+
 
                 return
             
@@ -108,6 +123,12 @@ class SetupAMRVerb(VerbExtensionPoint):
 
             #copy over the AMR bashrc
             execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
+
+            #copy over the AMR rc local
+            execute(["scp", sample_rc_local_path, f"{USERNAME}@{target}:/etc/rc.local"], True)
+
+            #copy over the can bringup command
+            execute(["scp", can_bringup_script_path, f"{USERNAME}@{target}:/bin/can_up.sh"], True)
 
             #clone amr setup repo
             execute(["ssh", f"{USERNAME}@{target}", "(cd", "AMR", "&&", "git", "clone", "https://github.com/OSU-AMR/amr_setup.git)"], True)

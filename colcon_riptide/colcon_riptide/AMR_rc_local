@@ -1,0 +1,6 @@
+#!/bin/bash
+
+#call the can brinup script
+./bin/can_up.sh &
+
+exit 0

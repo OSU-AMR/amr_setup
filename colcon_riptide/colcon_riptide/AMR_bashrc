@@ -117,3 +117,6 @@ source ~/colcon_deploy/install/setup.bash
 
 #zenoh not fast zenoh
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+
+#declare that this on an amr
+export AMR_BUILD_TYPE=amr

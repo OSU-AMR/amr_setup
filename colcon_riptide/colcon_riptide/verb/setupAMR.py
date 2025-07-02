@@ -46,6 +46,12 @@ class SetupAMRVerb(VerbExtensionPoint):
         )
 
         parser.add_argument(
+            '--install_battery',
+            action='store_true',
+            help='Wether to install the battery spoofer!'
+        )
+
+        parser.add_argument(
             '--deploy-list',
             action='store_true',
             help='Wether to deploy to a single host or a list of hosts define in the deploy lists folder'
@@ -63,10 +69,13 @@ class SetupAMRVerb(VerbExtensionPoint):
         HOSTNAME = context.args.hostname
         DEPLOY_LISTS = context.args.deploy_list
         UPDATE_BASHRC_ONLY = context.args.update_bashrc_only
+        INSTALL_BATTERY = context.args.install_battery
 
         sample_bashrc_path = files('colcon_riptide').joinpath("AMR_bashrc")
         sample_rc_local_path = files('colcon_riptide').joinpath("AMR_rc_local")
         can_bringup_script_path = files('colcon_riptide').joinpath("AMR_CAN_bringup")
+        battery_install_script = files('colcon_riptide').joinpath("AMR_setup_battery")
+        etc_environment_path = files('colcon_riptide').joinpath("AMR_etc_environment")
 
         targets = [HOSTNAME]
     
@@ -90,15 +99,17 @@ class SetupAMRVerb(VerbExtensionPoint):
                 execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/etc/rc.local"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/etc/rc.local"], True)
 
-                
-
                 #copy over the can bringup command
                 execute(["scp", can_bringup_script_path, f"{USERNAME}@{target}:tempfile"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/bin/can_up.sh"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/bin/can_up.sh"], True)
 
+                #copy over ssh environment
+                execute(["scp", etc_environment_path, f"{USERNAME}@{target}:tempfile"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/etc/environment"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/etc/environment"], True)
 
-                return
+                continue
             
             #copy ssh key
             execute(["ssh-copy-id", f"{USERNAME}@{target}"], True)
@@ -112,7 +123,7 @@ class SetupAMRVerb(VerbExtensionPoint):
                         wait_for_res = False
 
                     if(user_response == "N") or  (user_response == "n"):
-                        return
+                        continue
                 
                 #delete and remake the AMR directory
                 execute(["ssh", f"{USERNAME}@{target}", "rm", "-rf", "AMR"], True)
@@ -136,7 +147,17 @@ class SetupAMRVerb(VerbExtensionPoint):
             #install the setup script from the github
             execute(["ssh", f"{USERNAME}@{target}", "sudo", "AMR/amr_setup/setup.bash"], True)
 
-    
+        for target in targets:
+
+            #if the user wants to install the abttery
+            if(INSTALL_BATTERY):
+
+                #copy over the battery install script
+                execute(["scp", battery_install_script, f"{USERNAME}@{target}:install_battery.sh"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "install_battery.sh"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "./install_battery.sh"], True)
+
+
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)
     proc = Popen(fullCmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)

@@ -6,11 +6,11 @@ python3 -m pip install --upgrade pip
 sudo python3 -m pip install vcstool
 
 #add ubuntu unverise repo
-sudo apt install -y software-properties-common
+sudo apt-get install -y software-properties-common
 sudo add-apt-repository universe
 
 #add ros2 keys
-sudo apt update && sudo apt install curl -y
+sudo apt-get update && sudo apt install curl -y
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 
 #add ros2 repo to sources list
@@ -21,30 +21,36 @@ sudo apt update
 sudo apt -y upgrade
 
 #install ros2
-sudo apt install -y ros-humble-desktop
-sudo apt install -y ros-dev-tools
+sudo apt-get install -y ros-humble-desktop
+sudo apt-get install -y ros-dev-tools
 
 #install apriltag detector
 pip install dt-apriltags
 
 #install tf
-sudo apt install -y ros-humble-tf-transformations
+sudo apt-get install -y ros-humble-tf-transformations
 
 #install vision msgs
-sudo apt install -r ros-humble-vision-msgs
+sudo apt-get install -y ros-humble-vision-msgs
 
 #install ffmpeg
-sudo apt install ffmpeg
+sudo apt-get install ffmpeg
 
 #install colcon
-sudo apt install -y python3-colcon-common-extensions
+sudo apt-get install -y python3-colcon-common-extensions
 
 #install zenoh
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 sudo apt update
-sudo apt install -y ros-humble-rmw-zenoh-cpp 
+sudo apt-get install -y ros-humble-rmw-zenoh-cpp 
 
 #install htop
-sudo apt install htop
+sudo apt-get install htop
+
+sudo apt-get install -y git fakeroot kernel-package
+
+sudo apt-get install -y build-essential libncurses-dev flex bison libssl-dev libelf-dev dwarves
+
+
 
 

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#make the build directory
+rm -rf ~/kernel-build
+mkdir -p ~/kernel-build && cd ~/kernel-build
+
+wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.9.2.tar.xz
+tar -xf linux-6.9.2.tar.xz
+cd linux-6.9.2
+
+cp /boot/config-$(uname -r) .config
+make olddefconfig
+make menuconfig
+
+#set the power supply debug option on
+echo "CONFIG_POWER_SUPPLY_DEBUG=y" >> .config
+
+#rebuild the kernel
+make -j$(nproc)
+sudo make modules_install
+sudo make install
+
+#update bootloader
+sudo update-grub
+

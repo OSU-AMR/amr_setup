@@ -11,5 +11,6 @@
 
 rm -rf /usr/lib/python3/dist-packages/colcon_riptide
 
-cp -r /home/hollis/AMR/amr_setup/colcon_riptide/colcon_riptide /usr/lib/python3/dist-packages/
+USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
+cp -r $USER_HOME/AMR/amr_setup/colcon_riptide/colcon_riptide /usr/lib/python3/dist-packages/
 

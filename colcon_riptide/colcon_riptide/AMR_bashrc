@@ -120,3 +120,6 @@ export RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 #declare that this on an amr
 export AMR_BUILD_TYPE=amr
+
+export ZENOH_ROUTER_CONFIG_URI=$HOME/AMR/amr_zenoh_config.json
+ 

@@ -76,6 +76,8 @@ class SetupAMRVerb(VerbExtensionPoint):
         can_bringup_script_path = files('colcon_riptide').joinpath("AMR_CAN_bringup")
         battery_install_script = files('colcon_riptide').joinpath("AMR_setup_battery")
         etc_environment_path = files('colcon_riptide').joinpath("AMR_etc_environment")
+        generate_zenoh_config_script = files('colcon_riptide').joinpath("AMR_generate_zenoh_config")
+        generate_zenoh_config_script_base = files('colcon_riptide').joinpath("AMR_generate_zenoh_config_base")
 
         targets = [HOSTNAME]
     
@@ -109,6 +111,14 @@ class SetupAMRVerb(VerbExtensionPoint):
                 execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/etc/environment"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/etc/environment"], True)
 
+                #copy over the zenoh_config base
+                execute(["scp", generate_zenoh_config_script_base, f"{USERNAME}@{target}:AMR/amr_config_zenoh_base.json"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+rw", "AMR/amr_config_zenoh_base.json"], True)
+
+                #copy over the zenoh_config generator
+                execute(["scp", generate_zenoh_config_script, f"{USERNAME}@{target}:AMR/generate_zenoh_config.sh"], True)
+                execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "AMR/generate_zenoh_config.sh"], True)
+
                 continue
             
             #copy ssh key
@@ -139,8 +149,6 @@ class SetupAMRVerb(VerbExtensionPoint):
             execute(["scp", sample_rc_local_path, f"{USERNAME}@{target}:tempfile"], True)
             execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/etc/rc.local"], True)
             execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/etc/rc.local"], True)
-
-            
 
             #copy over the can bringup command
             execute(["scp", can_bringup_script_path, f"{USERNAME}@{target}:tempfile"], True)

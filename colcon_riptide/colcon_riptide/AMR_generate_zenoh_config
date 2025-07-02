@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#read the base config
+filename="$HOME/AMR/amr_config_zenoh_base.json"
+file_content=""
+
+while IFS= read -r line || [[ -n $line ]]; do
+    file_content+="$line"$'\n'
+done < "$filename"
+
+#split keyword
+keyword="<ENDPOINTS_HERE>"
+
+if [[ "$file_content" == *"$keyword"* ]]; then
+    # Extract everything before the keyword
+    begin_config_string="${file_content%%$keyword*}"
+    
+    # Extract everything after the keyword
+    end_config_string="${file_content#*$keyword}"
+    
+    # Re-attach the keyword value to the front of the end string
+    end_config_string="$end_config_string"
+
+else
+    echo "Keyword value not found in full_string"
+    exit 1
+fi
+
+#prep strings
+out_string="$begin_config_string"
+pre_endpoint_string='"tcp/'
+post_endpoint_string='",'
+
+for arg in "$@"; do
+  out_string="$out_string$pre_endpoint_string$arg$post_endpoint_string"
+done
+
+out_string="$out_string$end_config_string"
+
+echo "$out_string" > "$HOME/AMR/amr_zenoh_config.json"
+

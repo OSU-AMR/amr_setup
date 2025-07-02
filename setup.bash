@@ -34,7 +34,7 @@ sudo apt-get install -y ros-humble-tf-transformations
 sudo apt-get install -y ros-humble-vision-msgs
 
 #install ffmpeg
-sudo apt-get install ffmpeg
+sudo apt-get install -y ffmpeg
 
 #install colcon
 sudo apt-get install -y python3-colcon-common-extensions
@@ -45,12 +45,11 @@ sudo apt update
 sudo apt-get install -y ros-humble-rmw-zenoh-cpp 
 
 #install htop
-sudo apt-get install htop
 
 sudo apt-get install -y git fakeroot kernel-package
 
 sudo apt-get install -y build-essential libncurses-dev flex bison libssl-dev libelf-dev dwarves
 
-
+sudo apt-get install -y htop
 
 

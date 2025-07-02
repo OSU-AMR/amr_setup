@@ -34,7 +34,7 @@ sudo apt install -y ros-humble-tf-transformations
 sudo apt install -r ros-humble-vision-msgs
 
 #install ffmpeg
-sudo apt install ffmpeg
+sudo apt install -y ffmpeg
 
 #install colcon
 sudo apt install -y python3-colcon-common-extensions
@@ -45,6 +45,6 @@ sudo apt update
 sudo apt install -y ros-humble-rmw-zenoh-cpp 
 
 #install htop
-sudo apt install htop
+sudo apt install -y htop
 
 

@@ -29,7 +29,7 @@ fi
 #prep strings
 out_string="$begin_config_string"
 pre_endpoint_string='"tcp/'
-post_endpoint_string='",'
+post_endpoint_string=':7447",'
 
 for arg in "$@"; do
   out_string="$out_string$pre_endpoint_string$arg$post_endpoint_string"

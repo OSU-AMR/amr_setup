@@ -159,8 +159,32 @@ class DeployVerb(VerbExtensionPoint):
 
             # grab out the descriptors from each package as we are only building 
             # on the target and not the host
+
             packages_for_xfer = [package.descriptor for package in decorators if 
                 package.selected and package.descriptor.metadata["colcon_deploy_allow"]]
+
+            for package in packages_for_xfer:
+
+                #handle packages that should only be rebuilt if it is missing - looking at you micro-ros agent
+                if(package.metadata["build_if_missing"]):
+                    #check if the target build and install directories exist on the remote device
+                    pkg_install = os.path.join(REMOTE_DIR, "install", package.name)
+                    pkg_build = os.path.join(REMOTE_DIR, "build", package.name)
+
+                    if(check_path(pkg_build, USERNAME, target) and check_path(pkg_install, USERNAME, target)):
+                        #no need to rebuild at all
+                        packages_for_xfer.remove(package)
+
+                #handle packages that need clean build everytime -> looking at you roboware
+                if(package.metadata["squeaky_clean"]):
+                    pkg_install = os.path.join(REMOTE_DIR, "install", package.name)
+                    pkg_build = os.path.join(REMOTE_DIR, "build", package.name)
+                    pkg_log = os.path.join(REMOTE_DIR, "log", package.name)
+
+                    #delete the remote directory
+                    delRemoteDir(pkg_install, USERNAME, target)
+                    delRemoteDir(pkg_build, USERNAME, target)
+                    delRemoteDir(pkg_log, USERNAME, target)
 
             # make sure the remote source directory exists
             makeRemoteDir(REM_SRC_DIR, USERNAME, target)
@@ -248,7 +272,7 @@ class DeployVerb(VerbExtensionPoint):
             results[target] = "Success with Build"
 
             #attempt to run the blueprint translator command
-            translate_status = glorious_remote_execute(USERNAME, target, "ros2 run amr_central translate_blueprint.py --ros-args -p blueprint_filename:=map_a.yaml -p command_list_filename:=command_list.yaml -p ignore_gui:=True", VERBOSE, VERY_VERBOSE)
+            translate_status = glorious_remote_execute(USERNAME, target, "ros2 run amr_central translate_blueprint.py --ros-args -p blueprint_filename:=map_a.yaml -p command_list_filename:=command_list.yaml -p ignore_gui:=True -p configure_cfm:=False", VERBOSE, VERY_VERBOSE)
 
             if(translate_status != 0):
                 results[target] += " & and translate failure"
@@ -288,6 +312,21 @@ def execute(fullCmd, print_output=False, printOut=False):
     retCode = proc.wait()
     return retCode
 
+def execute_with_output(fullCmd, printOut=False):
+    output = ""
+
+    if printOut: print(fullCmd)
+    proc = Popen(fullCmd, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+
+    for line in iter(proc.stdout.readline, ""):
+        output += line
+    for errLine in iter(proc.stderr.readline, ""):
+        print(f"ERROR: {errLine}")
+    
+    proc.stdout.close()
+    retCode = proc.wait()
+    return retCode, output
+
 def xferDir(localdir, username, address, destination):
     execute(["rsync", "-vrzc", "--delete", "--exclude=**/.git/",
              "--exclude=**/.vscode/", localdir, 
@@ -315,6 +354,15 @@ def makeRemoteDir(remoteDir, username, address):
 
 def delRemoteDir(remoteDir, username, address):
     remoteExec(f"rm -rf {remoteDir}", username, address, False)
+
+def check_path(remoteDir, username, address):
+    #check to see if a directory exists on a remote device
+    _, output = execute_with_output(["ssh", f"{username}@{address}", f'[ -d {remoteDir} ] && echo exists || echo does_not_exist'], False)
+
+    if(output == "exists\n"):
+        return True
+    
+    return False
 
 def createAndSendBuildScript(username, hostname, remote_dir, source_files, packages, want_archive):
     DEPLOY_TEMPLATE = """
@@ -386,5 +434,5 @@ def createAndSendBuildScript(username, hostname, remote_dir, source_files, packa
     xferDir(local_script_path, username, hostname, local_script_path)
     return arch_name
 
-def glorious_remote_execute(uwer_name, target, command, is_verbose, is_very_verbose):
-    return execute(["ssh", f"{uwer_name}@{target}", "source /opt/ros/humble/setup.bash; source ~/colcon_deploy/install/setup.bash; " + command], is_verbose, is_very_verbose)
+def glorious_remote_execute(user_name, target, command, is_verbose, is_very_verbose):
+    return execute(["ssh", f"{user_name}@{target}", "source /opt/ros/humble/setup.bash; source ~/colcon_deploy/install/setup.bash; " + command], is_verbose, is_very_verbose)

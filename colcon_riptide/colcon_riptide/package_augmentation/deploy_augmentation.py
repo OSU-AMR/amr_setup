@@ -8,7 +8,8 @@ from colcon_core.plugin_system import satisfies_version
 import os.path
 
 DEPLOY_IGNORE = "DEPLOY_IGNORE"
-
+SQUEAKY_CLEAN = "SQUEAKY_CLEAN"
+BUILD_IF_MISSING = "BUILD_ONLY_IF_MISSING"
 
 class DeployIgnorePackageAugmentation(PackageAugmentationExtensionPoint):
     """
@@ -28,7 +29,12 @@ class DeployIgnorePackageAugmentation(PackageAugmentationExtensionPoint):
         self, desc, *, additional_argument_names=None
     ):
         deploy_ignore = desc.path / DEPLOY_IGNORE
+        squeaky_clean = desc.path / SQUEAKY_CLEAN
+        build_if_missing = desc.path / BUILD_IF_MISSING
+        
         desc.metadata['colcon_deploy_allow'] = not os.path.lexists(str(deploy_ignore))
+        desc.metadata['squeaky_clean'] = os.path.lexists(str(squeaky_clean))
+        desc.metadata['build_if_missing'] = os.path.lexists(str(build_if_missing))
 
 
 

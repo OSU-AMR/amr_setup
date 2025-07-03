@@ -87,7 +87,7 @@ alias l='ls -CF'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 #add an alias to the translate blueprint command
-alias translate_blueprint="ros2 run amr_central translate_blueprint.py --ros-args -p blueprint_filename:=map_a.yaml -p command_list_filename:=command_list.yaml -p ignore_gui:=True"
+alias translate_blueprint="ros2 run amr_central translate_blueprint.py --ros-args -p blueprint_filename:=map_a.yaml -p command_list_filename:=command_list.yaml -p ignore_gui:=True -p configure_cfm:=False"
 
 #add an alias to the launch configure command
 alias configure_for_launcher="ros2 run amr_launcher configure_for_launch.py"

@@ -52,4 +52,6 @@ sudo apt-get install -y build-essential libncurses-dev flex bison libssl-dev lib
 
 sudo apt-get install -y htop
 
-
+#install iir
+sudo add-apt-repository -y ppa:berndporr/dsp
+sudo apt install -y iir1-dev

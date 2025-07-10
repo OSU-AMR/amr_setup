@@ -92,6 +92,9 @@ class SetupAMRVerb(VerbExtensionPoint):
 
         for target in targets:
 
+            #copy ssh key
+            execute(["ssh-copy-id", f"{USERNAME}@{target}"], True)
+
             #only update the bashrc file then quit
             if(UPDATE_BASHRC_ONLY):
                 execute(["scp", sample_bashrc_path, f"{USERNAME}@{target}:.bashrc"], True)
@@ -121,9 +124,6 @@ class SetupAMRVerb(VerbExtensionPoint):
 
                 continue
             
-            #copy ssh key
-            execute(["ssh-copy-id", f"{USERNAME}@{target}"], True)
-
             if(execute(["ssh", f"{USERNAME}@{target}", "mkdir", "AMR"], True) == 1):
                 wait_for_res = True
                 while(wait_for_res):

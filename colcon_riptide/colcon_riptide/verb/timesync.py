@@ -27,7 +27,7 @@ class TimesyncVerb(VerbExtensionPoint):
         # support a configurable username
         parser.add_argument(
             '--username',
-            default='ros',
+            default='dev',
             help='The username to use on login '
                  '(default: ros)'
         )

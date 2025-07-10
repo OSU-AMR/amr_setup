@@ -122,4 +122,7 @@ export RMW_IMPLEMENTATION=rmw_zenoh_cpp
 export AMR_BUILD_TYPE=amr
 
 export ZENOH_ROUTER_CONFIG_URI=$HOME/AMR/amr_zenoh_config.json
+
+#add roboware to the cmake path prefix
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/dev/colcon_deploy/install/amr_roboware/lib/amr_roboware
  

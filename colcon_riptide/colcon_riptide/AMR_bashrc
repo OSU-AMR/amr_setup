@@ -95,6 +95,12 @@ alias configure_for_launcher="ros2 run amr_launcher configure_for_launch.py"
 #add an alias to launch the zenoh router
 alias zenoh_launch="ros2 run rmw_zenoh_cpp rmw_zenohd"
 
+#micro ros launch
+alias micro_ros_launch="/home/dev/colcon_deploy/install/microxrcedds_agent/bin/MicroXRCEAgent can --dev can0 -m rmw"
+
+#hardware launch 
+alias hardware_launch="ros2 launch amr_roboware simple_hardware.launch.py robot:=Robot${AMR_CHASSIS_NUMBER}base"
+
 # Alias definitions.
 # You may want to put all your additions into a separate file like
 # ~/.bash_aliases, instead of adding them here directly.
@@ -125,4 +131,6 @@ export ZENOH_ROUTER_CONFIG_URI=$HOME/AMR/amr_zenoh_config.json
 
 #add roboware to the cmake path prefix
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/dev/colcon_deploy/install/amr_roboware/lib/amr_roboware
+
+
  

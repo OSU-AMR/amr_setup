@@ -18,6 +18,9 @@ from datetime import datetime
 from fabric import Connection
 import os, stat
 
+HOSTNAME_PREFIXES = ["Robot", "robot"]
+HOSTNAME_SUFFIXES = ["wired", "wireless", "Wired", "Wireless"]
+
 class SetupAMRVerb(VerbExtensionPoint):
     """deploys package workspaces."""
 
@@ -92,6 +95,14 @@ class SetupAMRVerb(VerbExtensionPoint):
 
         for target in targets:
 
+            target_number = getNumberFromHostname(target)
+            if(target_number < 0):
+                print(f"Failed to get amr number from hostname {target}. Not setting up")
+                continue
+
+            #get the hostname environment string
+            number_env_str = get_amr_number_env_string(target_number)
+
             #copy ssh key
             execute(["ssh-copy-id", f"{USERNAME}@{target}"], True)
 
@@ -111,6 +122,8 @@ class SetupAMRVerb(VerbExtensionPoint):
 
                 #copy over ssh environment
                 execute(["scp", etc_environment_path, f"{USERNAME}@{target}:tempfile"], True)
+                #add the hostname export
+                execute(["ssh", f"{USERNAME}@{target}", "echo", f'"{number_env_str}"', ">>", "tempfile"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "sudo", "mv", "tempfile", "/etc/environment"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "/etc/environment"], True)
 
@@ -171,6 +184,64 @@ class SetupAMRVerb(VerbExtensionPoint):
                 execute(["ssh", f"{USERNAME}@{target}", "chmod", "a+x", "install_battery.sh"], True)
                 execute(["ssh", f"{USERNAME}@{target}", "./install_battery.sh"], True)
 
+def getNumberFromHostname(hostname):
+    #parse target number from  the given hostname
+
+    for prefix in HOSTNAME_PREFIXES:
+        if prefix in HOSTNAME_SUFFIXES:
+            print("A host name prefix is a host name suffix. This is not allowed!")
+            return -1
+        
+    #find the prefix
+    found_prefix = ""
+    for prefix in HOSTNAME_PREFIXES:
+        if prefix in hostname:
+            found_prefix = prefix
+            break
+
+    if(found_prefix == ""):
+        print(f"Please use a valid prefix at the begining at the AMR hostname. Choose from {HOSTNAME_PREFIXES}.")
+        print(f"Valid hostname format PREFIX#SUFFIX. # is a valid positive integer!")
+        return -1
+    
+    #find the suffix
+    found_suffix = ""
+    for suffix in HOSTNAME_SUFFIXES:
+        if suffix in hostname:
+            found_suffix = suffix
+            break
+
+    if(found_suffix == ""):
+        print(f"Please use a valid suffix at the begining at the AMR hostname. Choose from {HOSTNAME_SUFFIXES}.")
+        print(f"Valid hostname format PREFIX#SUFFIX. # is a valid positive integer!")
+        return -1
+    
+    #split off the prefix
+    number_str = ""
+    try:
+        suffix_str = hostname.split(prefix)[1]
+
+        #split off the suffix
+        number_str = suffix_str.split(suffix)[0]
+    except:
+        print(f"Failed to parse hostname: {hostname} to AMR number.")
+        return -1
+    
+    
+    try:
+        number = int(number_str)
+
+        return number
+    
+    except:
+
+        print(f"Failed to parse hostname number {number_str}")
+
+    return -1
+
+def get_amr_number_env_string(amr_number):
+    #get the string to add to the /etc/environment to set the amr chassis number based on the hostname
+    return f"\nAMR_CHASSIS_NUMBER={amr_number}\n"
 
 def execute(fullCmd, printOut=False):
     if printOut: print(fullCmd)

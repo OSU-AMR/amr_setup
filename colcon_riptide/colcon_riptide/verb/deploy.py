@@ -18,6 +18,9 @@ from datetime import datetime
 from fabric import Connection
 import os, stat
 
+ACTION_PACKAGE = "amr_roboware"
+ACTION_DEPLOY_DIR = f"install/{ACTION_PACKAGE}/lib/{ACTION_PACKAGE}"
+
 class DeployVerb(VerbExtensionPoint):
     """deploys package workspaces."""
 
@@ -85,6 +88,19 @@ class DeployVerb(VerbExtensionPoint):
             help='Wether or not to print command'
         )
 
+        parser.add_argument(
+            '--actions',
+            action='store_true',
+            help='Only deploy action files'
+        )
+
+        parser.add_argument(
+            '--action_directoy',
+            default='src/actions',
+            help='specify the '
+        )
+
+
         add_packages_arguments(parser)
 
         decorated_parser = DestinationCollectorDecorator(parser)
@@ -103,6 +119,8 @@ class DeployVerb(VerbExtensionPoint):
         DEPLOY_LISTS = context.args.deploy_list
         VERBOSE = context.args.verbose
         VERY_VERBOSE = context.args.very_verbose
+        ACTIONS_ONLY = context.args.actions
+        ACTION_SUBDIR = context.args.action_directoy
 
         REM_SRC_DIR = os.path.join(REMOTE_DIR, "src")
 
@@ -142,6 +160,42 @@ class DeployVerb(VerbExtensionPoint):
 
             # make sure the remote directory exists
             makeRemoteDir(REMOTE_DIR, USERNAME, target)
+
+            if(ACTIONS_ONLY):
+                try:
+                    print("Syncing action files")
+
+                    decorators = get_packages(
+                        context.args,
+                        additional_argument_names=self.task_argument_destinations,
+                        # recursive_categories=('run', )
+                    )
+
+                    action_package = None
+                    for package in decorators:
+                        if(package.descriptor.name == ACTION_PACKAGE):
+                            action_package = package
+                            break
+
+                    if(action_package is None):
+                        print(f"Couldn't find package: {ACTION_PACKAGE}")
+                        results[target] = "Action deploy failure"
+                        continue
+
+                    action_dir = os.path.join(action_package.descriptor.path, ACTION_SUBDIR)
+                    deploy_dir = os.path.join(REM_SRC_DIR, "..", ACTION_DEPLOY_DIR)
+
+                    xferDir(action_dir, USERNAME, target, deploy_dir)
+
+                    results[target] = "Action deploy success!"
+                    continue
+
+                except KeyError as e:
+                    print(f"Couldn't find package: {e}")
+
+                results[target] = "Action deploy failure"
+                continue
+
 
             # make sure we're not cleaning the entire directory
             if WANT_CLEAN:

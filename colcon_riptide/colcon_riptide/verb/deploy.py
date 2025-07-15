@@ -100,7 +100,6 @@ class DeployVerb(VerbExtensionPoint):
             help='specify the '
         )
 
-
         add_packages_arguments(parser)
 
         decorated_parser = DestinationCollectorDecorator(parser)

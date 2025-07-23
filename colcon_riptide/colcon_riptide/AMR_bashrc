@@ -101,6 +101,9 @@ alias micro_ros_launch="/home/dev/colcon_deploy/install/microxrcedds_agent/bin/M
 #hardware launch 
 alias hardware_launch="ros2 launch amr_roboware simple_hardware.launch.py robot:=Robot${AMR_CHASSIS_NUMBER}base"
 
+#bing
+alias bing="ping bing.com"
+
 # Alias definitions.
 # You may want to put all your additions into a separate file like
 # ~/.bash_aliases, instead of adding them here directly.

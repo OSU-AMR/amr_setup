@@ -140,12 +140,15 @@ class SetupAMRVerb(VerbExtensionPoint):
             if(execute(["ssh", f"{USERNAME}@{target}", "mkdir", "AMR"], True) == 1):
                 wait_for_res = True
                 while(wait_for_res):
-                    user_response = input("This host appears to be setup. Would you like to wipe it and continue? (Y/n)")
+                    user_response = input("This host appears to be setup. Would you like to wipe it and continue? (y/N)")
 
                     if(user_response == "Y") or  (user_response == "y"):
                         wait_for_res = False
 
                     if(user_response == "N") or  (user_response == "n"):
+                        continue
+
+                    if(user_response == ""):
                         continue
                 
                 #delete and remake the AMR directory

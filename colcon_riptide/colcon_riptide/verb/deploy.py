@@ -17,6 +17,12 @@ from subprocess import Popen, PIPE, call
 from datetime import datetime
 from fabric import Connection
 import os, stat
+import socket
+
+import subprocess
+from pathlib import Path
+from typing import Optional
+
 
 ACTION_PACKAGE = "amr_roboware"
 ACTION_DEPLOY_DIR = f"install/{ACTION_PACKAGE}/lib/{ACTION_PACKAGE}"
@@ -95,6 +101,12 @@ class DeployVerb(VerbExtensionPoint):
         )
 
         parser.add_argument(
+            '--get_info',
+            action='store_true',
+            help='Only display deploy log data'
+        )
+
+        parser.add_argument(
             '--action_directoy',
             default='src/actions',
             help='specify the '
@@ -120,6 +132,7 @@ class DeployVerb(VerbExtensionPoint):
         VERY_VERBOSE = context.args.very_verbose
         ACTIONS_ONLY = context.args.actions
         ACTION_SUBDIR = context.args.action_directoy
+        GET_INFO = context.args.get_info
 
         REM_SRC_DIR = os.path.join(REMOTE_DIR, "src")
 
@@ -209,6 +222,12 @@ class DeployVerb(VerbExtensionPoint):
                 additional_argument_names=self.task_argument_destinations,
                 # recursive_categories=('run', )
             )
+
+            #if wanted to get the colcon log output
+            # if(GET_INFO):
+            #     for package in packages_for_xfer:
+
+
 
             # grab out the descriptors from each package as we are only building 
             # on the target and not the host
@@ -320,6 +339,13 @@ class DeployVerb(VerbExtensionPoint):
                 local_path = os.path.join(work_dir, arch_name[arch_name.index('/') + 1 : ])
 
                 print(f"Archive downloaded to {local_path}")
+
+            #write the deploy info file
+            for package in packages_for_xfer:
+                contents = generate_deploy_log_file_content(package.path)
+
+                remoteExec(f"echo {contents} > {REMOTE_DIR}/install/{package.name}/.colcon_deploy_log", USERNAME, target, True)
+
 
             #add failure state to result log
             results[target] = "Success with Build"
@@ -489,3 +515,147 @@ def createAndSendBuildScript(username, hostname, remote_dir, source_files, packa
 
 def glorious_remote_execute(user_name, target, command, is_verbose, is_very_verbose):
     return execute(["ssh", f"{user_name}@{target}", "source /opt/ros/humble/setup.bash; source ~/colcon_deploy/install/setup.bash; " + command], is_verbose, is_very_verbose)
+
+def get_internal_name(fqdn: bool = False) -> str:
+    """
+    Return the machine's internal network name.
+
+    Args:
+        fqdn (bool): If True, return the fully qualified domain name (FQDN).
+                     Otherwise, return the simple hostname.
+
+    Returns:
+        str: The hostname or FQDN of the machine.
+    """
+    if fqdn:
+        return socket.getfqdn()
+    return socket.gethostname()
+
+def get_human_readable_time(fmt: str = "%B %d, %Y at %I:%M %p") -> str:
+    """
+    Return the current local time as a formatted, human-readable string.
+
+    Args:
+        fmt (str): A datetime.strftime format string.
+                   Default is "MonthName Day, Year at HH:MM AM/PM".
+
+    Returns:
+        str: The current time formatted per `fmt`.
+    """
+    now = datetime.now()
+    return now.strftime(fmt)
+
+def get_last_commit_message(repo_path: Optional[str] = None) -> str:
+    """
+    Return the last commit message of the given Git repository.
+
+    Args:
+        repo_path (str, optional): Path to the Git repository. Defaults to current directory.
+
+    Returns:
+        str: The last commit message (with newlines preserved).
+    
+    Raises:
+        FileNotFoundError: If the given path is not a Git repository.
+        RuntimeError: If Git is not installed or another Git error occurs.
+    """
+    repo_path = Path(os.path.join(Path.cwd(), repo_path) or Path.cwd())
+    if not (repo_path / ".git").exists():
+        return "NONE DETECTED"
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "log", "-1", "--pretty=%B"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except FileNotFoundError:
+        return "NONE DETECTED"
+    except subprocess.CalledProcessError as e:
+        return "NONE DETECTED"
+
+    # Return the commit message, stripping only trailing whitespace/newlines
+    return result.stdout.rstrip()
+
+def get_git_repo_name(repo_path: Optional[str] = None) -> str:
+    """
+    Return the name of the Git repository at the given path.
+
+    Args:
+        repo_path (str, optional): Path to check for a Git repository.
+                                   Defaults to the current working directory.
+
+    Returns:
+        str: The repository's directory name (i.e., the last path component
+             of the repository root).
+
+    Raises:
+        FileNotFoundError: If no Git repository is found at or above repo_path.
+        RuntimeError: If Git is not installed or another Git error occurs.
+    """
+    repo_path = Path(os.path.join(Path.cwd(), repo_path) or Path.cwd())
+
+    print(repo_path)
+
+    # Find the top‑level directory of the Git repo
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "rev-parse", "--show-toplevel"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except FileNotFoundError:
+        return "NONE DETECTED"
+    except subprocess.CalledProcessError:
+        return "NONE DETECTED"
+
+    top_level = Path(result.stdout.strip())
+    return top_level.name
+
+def get_git_branch_name(repo_path: Optional[str] = None) -> str:
+    """
+    Return the current Git branch name for the repository at the given path.
+
+    Args:
+        repo_path (str, optional): Path to the Git repository. Defaults to the current working directory.
+
+    Returns:
+        str: The current branch name.
+
+    Raises:
+        FileNotFoundError: If no Git repository is found at the specified path.
+        RuntimeError: If Git is not installed or another Git error occurs.
+    """
+    repo = Path(repo_path or Path.cwd())
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "--abbrev-ref", "HEAD"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except FileNotFoundError:
+        return "NONE DETECTED"
+    except subprocess.CalledProcessError:
+        return "NONE DETECTED"
+
+    return result.stdout.strip()
+
+def generate_deploy_log_file_content(source_path):
+    #create a file to log the package's deploy
+
+    contents = "'COLCON DEPLOY LOG FILE!"
+
+    contents += f"\n SOURCE DEVICE: {get_internal_name()}"    
+    contents += f"\n DEPLOY TIME: {get_human_readable_time()}"
+    contents += f"\n GIT REPO: {get_git_repo_name(source_path)}"
+    contents += f"\n LAST COMMIT: {get_last_commit_message(source_path)}"
+    contents += f"\n GIT BRANCH: {get_git_branch_name(source_path)}"
+    contents += "'"
+
+    return contents

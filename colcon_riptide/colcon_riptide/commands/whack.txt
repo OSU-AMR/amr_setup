@@ -1,0 +1,6 @@
+#turn off
+pkill -SIGINT MicroXRCEAgent
+pkill -SIGINT rmw_zenohd
+pkill -SIGINT simple_controller
+pkill -SIGINT python3
+pkill -SIGINT ros2

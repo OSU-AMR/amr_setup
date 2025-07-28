@@ -89,6 +89,13 @@ class Command(VerbExtensionPoint):
             except FileNotFoundError:
                 print(f"No file found for deploy lists at {files('colcon_riptide.deploy_lists').joinpath(f'{HOSTNAME}.txt')}")
                 return
+            
+        #try to find the command in the saved files
+        try:
+            command_text = files('colcon_riptide.commands').joinpath(f'{COMMAND}.txt').read_text()
+            command_lines = command_text.split("\n")
+        except:
+            command_lines = COMMAND.split("\n")
 
         #error code state for deploy log
         results = dict()
@@ -106,12 +113,21 @@ class Command(VerbExtensionPoint):
                 continue
 
 
-            #install the setup script from the github
-            if(execute(["ssh", f"{USERNAME}@{target}", COMMAND], VERBOSE, VERY_VERBOSE)):
-                results[target] = "Failed with Ret Code 1 - Please see output above"
+            for line in command_lines:
 
-            else:
-                results[target] = "Command Successfully Sent"
+                #ignore if a comment
+                line = line.split("#")[0]
+
+                #ignore if exmpty
+                if(line == ""):
+                    continue
+
+                #install the setup script from the github
+                if(execute(["ssh", f"{USERNAME}@{target}", line], VERBOSE, VERY_VERBOSE)):
+                    results[target] = "Failed with Ret Code 1 - Please see output above"
+
+                else:
+                    results[target] = "Command Successfully Sent"
 
         #print out the log of the results
         print(f"\n\n*******************************************************************")

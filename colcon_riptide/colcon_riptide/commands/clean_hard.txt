@@ -1,0 +1,2 @@
+#delete all
+rm -rf ~/colcon_deploy/build ~/colcon_deploy/install ~/colcon_deploy/log

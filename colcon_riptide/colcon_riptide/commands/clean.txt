@@ -1,0 +1,14 @@
+#save the micro ros agent
+cp -r ~/colcon_deploy/install/microxrcedds_agent ~/colcon_command_tmp_1
+cp -r ~/colcon_deploy/build/microxrcedds_agent ~/colcon_command_tmp_2
+
+#delete other stuff
+rm -rf ~/colcon_deploy/build ~/colcon_deploy/install ~/colcon_deploy/log
+
+#replace directories
+mkdir ~/colcon_deploy/build
+mkdir ~/colcon_deploy/install
+
+#replace microros agent
+cp -r ~/colcon_command_tmp_2 ~/colcon_deploy/build/microxrcedds_agent
+cp -r ~/colcon_command_tmp_1 ~/colcon_deploy/install/microxrcedds_agent 

@@ -354,19 +354,19 @@ class DeployVerb(VerbExtensionPoint):
             translate_status = glorious_remote_execute(USERNAME, target, "ros2 run amr_central translate_blueprint.py --ros-args -p blueprint_filename:=map_a.yaml -p command_list_filename:=command_list.yaml -p ignore_gui:=True -p configure_cfm:=False", VERBOSE, VERY_VERBOSE)
 
             if(translate_status != 0):
-                results[target] += " & and translate failure"
+                results[target] += " & translate failure"
                 continue
             
-            results[target] += " & and translate success"
+            results[target] += " & translate success"
 
             #attempt to run the launch configurator file
             configure_status = glorious_remote_execute(USERNAME, target, 'ros2 run amr_launcher configure_for_launch.py',  VERBOSE, VERY_VERBOSE)
 
             if(configure_status != 0):
-                results[target] += " & and launch configuration failure"
+                results[target] += " & launch configuration failure"
                 continue
             
-            results[target] += " & and launch configuration success"
+            results[target] += " & launch configuration success"
 
         #print out the log of the results
         print(f"\n\n*******************************************************************")
